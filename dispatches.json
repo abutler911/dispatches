@@ -12,6 +12,12 @@
     "content": "<p>This is the first paragraph. </p><div class='pull-quote'>This line becomes a pull quote. Delete this if you don't need one.</div><p>Continue writing paragraphs normally. Bold and italic carry over.</p><div class='section-break'>? ? ?</div><p>Three dashes on their own line become a section break (? ? ?). Delete this if you don't need one.</p>"
   },
   {
+    "title": "Mobile Testing",
+    "subtitle": "this is a test",
+    "date": "2026-03-04",
+    "content": "<p>Your first paragraph goes here. Just start writing. Is it working!?!</p><div class='pull-quote'>This line becomes a pull quote. Delete this if you don't need one.</div><p>Continue writing paragraphs normally. Bold and italic carry over.</p><div class='section-break'>? ? ?</div><p>Three dashes on their own line become a section break (? ? ?). Delete this if you don't need one.</p>"
+  },
+  {
     "title": "The Mirage of a Brief Conflict",
     "subtitle": "A strategic assessment of logistical limits and the inevitability of escalation.",
     "date": "2026-03-03",
