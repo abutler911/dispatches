@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
@@ -16,14 +16,12 @@
     <!-- Reading Progress Bar -->
     <div class="progress-bar" id="progress-bar"></div>
 
-    <!-- Minimal Top Nav -->
+    <!-- Top Nav -->
     <nav class="top-nav" id="top-nav">
-      <span class="nav-brand">AFB</span>
+      <span class="nav-brand">Dispatches // AFB</span>
       <div class="nav-controls">
-        <button class="nav-btn" id="archive-toggle" aria-label="Archive">
-          Index
-        </button>
-        <button class="nav-btn" id="theme-toggle" aria-label="Toggle theme">
+        <button class="nav-btn" id="archive-toggle">Index</button>
+        <button class="nav-btn" id="theme-toggle">
           <span class="theme-icon"></span>
         </button>
       </div>
@@ -42,8 +40,8 @@
 
     <!-- Main Content -->
     <div class="wrapper">
-      <header class="site-header" id="site-header">
-        <div class="header-rule"></div>
+      <header class="site-header">
+        <div class="header-classification">Independent Analysis</div>
         <p class="site-title">Dispatches</p>
         <p class="site-author">Andrew F. Butler</p>
         <p class="site-desc">
@@ -53,8 +51,6 @@
       </header>
 
       <main id="articles-container"></main>
-
-      <!-- Article Navigation -->
       <nav class="article-nav" id="article-nav"></nav>
 
       <footer class="site-footer">
@@ -69,7 +65,7 @@
             procedural requirements of modern statecraft.
           </p>
         </div>
-        <p class="colophon">Est. 2026 · Independent Publication</p>
+        <p class="colophon">Est. 2026 &middot; Independent Publication</p>
       </footer>
     </div>
 

@@ -7,7 +7,6 @@
 
   // --- State ---
   let posts = [];
-  let currentIndex = 0;
 
   // --- DOM References ---
   const body = document.body;
@@ -43,13 +42,9 @@
           document.documentElement.scrollHeight - window.innerHeight;
         const progress = docHeight > 0 ? (scrollY / docHeight) * 100 : 0;
 
-        // Progress bar
         progressBar.style.width = progress + '%';
-
-        // Nav background
         topNav.classList.toggle('scrolled', scrollY > 80);
 
-        // Hide nav on scroll down, show on scroll up
         if (scrollY > lastScrollY && scrollY > 200) {
           topNav.classList.add('hidden');
         } else {
@@ -111,22 +106,21 @@
   // --- Render Articles ---
   function renderArticles(data) {
     posts = data;
-
-    // Sort newest first
     posts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Render main articles
     articlesContainer.innerHTML = posts
       .map((post, i) => {
         const num = String(posts.length - i).padStart(3, '0');
         return `
           <article id="dispatch-${i}" data-index="${i}">
-            <span class="dispatch-number">Dispatch No. ${num}</span>
+            <div class="dispatch-label">Dispatch No. ${num}</div>
             <header>
               <h1>${post.title}</h1>
               <span class="subtitle">${post.subtitle}</span>
               <div class="meta">
-                <span class="author-name">Andrew F. Butler</span> · ${formatDate(post.date)}
+                <span class="author-name">Andrew F. Butler</span>
+                <span class="divider">//</span>
+                ${formatDate(post.date)}
               </div>
             </header>
             <div class="body-content">
@@ -137,12 +131,10 @@
       })
       .join('');
 
-    // Observe articles for scroll reveal
     document.querySelectorAll('article').forEach((el) => {
       revealObserver.observe(el);
     });
 
-    // Build archive list
     archiveList.innerHTML = posts
       .map(
         (post, i) => `
@@ -156,18 +148,7 @@
       )
       .join('');
 
-    // Build inter-article navigation
     if (posts.length > 1) {
-      const navLinks = posts
-        .map((post, i) => {
-          const prev = i > 0 ? posts[i - 1] : null;
-          const next = i < posts.length - 1 ? posts[i + 1] : null;
-          // We only build a single nav block between all articles
-          return '';
-        })
-        .join('');
-
-      // Build a simple "scroll to top" or latest/oldest nav
       articleNav.innerHTML = `
         <a href="#dispatch-${posts.length - 1}">
           Oldest
@@ -193,7 +174,7 @@
       articlesContainer.innerHTML = `
         <article class="visible">
           <h1>Standby</h1>
-          <p>Dispatches are being loaded. If this persists, ensure <code>dispatches.json</code> is accessible.</p>
+          <p>Dispatches are being loaded. If this persists, ensure dispatches.json is accessible.</p>
         </article>
       `;
     }
@@ -204,7 +185,6 @@
     if (archiveOverlay.classList.contains('open')) return;
 
     if (e.key === 'j' || e.key === 'ArrowDown') {
-      // Next article
       const articles = document.querySelectorAll('article');
       for (let i = 0; i < articles.length; i++) {
         const rect = articles[i].getBoundingClientRect();
@@ -216,7 +196,6 @@
     }
 
     if (e.key === 'k' || e.key === 'ArrowUp') {
-      // Previous article
       const articles = document.querySelectorAll('article');
       for (let i = articles.length - 1; i >= 0; i--) {
         const rect = articles[i].getBoundingClientRect();
