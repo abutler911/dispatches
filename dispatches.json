@@ -1,10 +1,5 @@
 [
-  {
-    "title": "Test Dispatch",
-    "subtitle": "A quick test to verify the publishing pipeline.",
-    "date": "2026-03-04",
-    "content": "<p>This is a test paragraph to confirm the pipeline is working. If this appears on the site, everything is connected properly.</p><div class='pull-quote'>This should render as a pull quote.</div><p>And this is a second paragraph to verify multi-paragraph handling.</p>"
-  },
+ 
   {
     "title": "The Mirage of a Brief Conflict",
     "subtitle": "A strategic assessment of logistical limits and the inevitability of escalation.",
