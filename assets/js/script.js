@@ -103,6 +103,69 @@
     });
   }
 
+  // --- Content Processing ---
+  // Processes raw HTML content from dispatches.json to ensure
+  // lists and other elements render correctly.
+
+  function processContent(rawContent) {
+    // Create a temporary container to parse and clean the HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = rawContent;
+
+    // Ensure all lists inside .body-content are properly structured.
+    // If the JSON content uses simple line-break-separated items with
+    // markers like "- item" or "1. item", convert them to proper HTML lists.
+    // This handles both pre-formed <ul>/<ol> tags AND plain-text list patterns.
+
+    const textNodes = [];
+    const walker = document.createTreeWalker(temp, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+    // Process paragraphs that contain line-based list patterns
+    temp.querySelectorAll('p').forEach((p) => {
+      const html = p.innerHTML.trim();
+
+      // Detect unordered list pattern: lines starting with "- " or "• "
+      const ulPattern = /^(?:[•\-\*]\s+.+(?:<br\s*\/?>)?)+$/im;
+      // Detect ordered list pattern: lines starting with "1. ", "2. ", etc.
+      const olPattern = /^(?:\d+[\.\)]\s+.+(?:<br\s*\/?>)?)+$/im;
+
+      if (ulPattern.test(html)) {
+        const items = html
+          .split(/<br\s*\/?>|\n/)
+          .map((line) => line.replace(/^[•\-\*]\s+/, '').trim())
+          .filter((line) => line.length > 0);
+
+        if (items.length > 0) {
+          const ul = document.createElement('ul');
+          items.forEach((item) => {
+            const li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+          });
+          p.replaceWith(ul);
+        }
+      } else if (olPattern.test(html)) {
+        const items = html
+          .split(/<br\s*\/?>|\n/)
+          .map((line) => line.replace(/^\d+[\.\)]\s+/, '').trim())
+          .filter((line) => line.length > 0);
+
+        if (items.length > 0) {
+          const ol = document.createElement('ol');
+          items.forEach((item) => {
+            const li = document.createElement('li');
+            li.innerHTML = item;
+            ol.appendChild(li);
+          });
+          p.replaceWith(ol);
+        }
+      }
+    });
+
+    return temp.innerHTML;
+  }
+
   // --- Render Articles ---
   function renderArticles(data) {
     posts = data;
@@ -111,6 +174,7 @@
     articlesContainer.innerHTML = posts
       .map((post, i) => {
         const num = String(posts.length - i).padStart(3, '0');
+        const processedContent = processContent(post.content);
         return `
           <article id="dispatch-${i}" data-index="${i}">
             <div class="dispatch-label">Dispatch No. ${num}</div>
@@ -124,7 +188,7 @@
               </div>
             </header>
             <div class="body-content">
-              ${post.content}
+              ${processedContent}
             </div>
           </article>
         `;
@@ -165,7 +229,7 @@
   // --- Load Content ---
   async function loadDispatches() {
     try {
-      const response = await fetch('dispatches.json');
+      const response = await fetch('data/dispatches.json');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       renderArticles(data);
@@ -174,7 +238,7 @@
       articlesContainer.innerHTML = `
         <article class="visible">
           <h1>Standby</h1>
-          <p>Dispatches are being loaded. If this persists, ensure dispatches.json is accessible.</p>
+          <p>Dispatches are being loaded. If this persists, ensure data/dispatches.json is accessible.</p>
         </article>
       `;
     }
