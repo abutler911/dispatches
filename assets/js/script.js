@@ -1,5 +1,5 @@
 // ============================================
-// DISPATCHES — Core Engine
+// DISPATCHES — Core Engine v2
 // ============================================
 
 (function () {
@@ -7,6 +7,8 @@
 
   // --- State ---
   let posts = [];
+  let currentArticleIndex = -1;
+  let keyboardHintTimer = null;
 
   // --- DOM References ---
   const body = document.body;
@@ -17,8 +19,12 @@
   const archiveOverlay = document.getElementById('archive-overlay');
   const archiveClose = document.getElementById('archive-close');
   const archiveList = document.getElementById('archive-list');
+  const archiveCount = document.getElementById('archive-count');
   const articlesContainer = document.getElementById('articles-container');
   const articleNav = document.getElementById('article-nav');
+  const scrollTopBtn = document.getElementById('scroll-top');
+  const scrollCue = document.getElementById('scroll-cue');
+  const keyboardHint = document.getElementById('keyboard-hint');
 
   // --- Theme ---
   const savedTheme = localStorage.getItem('dispatches-theme');
@@ -30,7 +36,15 @@
     localStorage.setItem('dispatches-theme', next);
   });
 
-  // --- Scroll: Progress Bar + Nav Hide/Show ---
+  // --- Reading Time Estimate ---
+  function estimateReadingTime(html) {
+    const text = html.replace(/<[^>]*>/g, '');
+    const words = text.trim().split(/\s+/).length;
+    const minutes = Math.max(1, Math.round(words / 230));
+    return minutes;
+  }
+
+  // --- Scroll: Progress + Nav + Scroll-to-Top ---
   let lastScrollY = 0;
   let ticking = false;
 
@@ -45,11 +59,15 @@
         progressBar.style.width = progress + '%';
         topNav.classList.toggle('scrolled', scrollY > 80);
 
-        if (scrollY > lastScrollY && scrollY > 200) {
+        // Hide/show nav on scroll direction
+        if (scrollY > lastScrollY && scrollY > 240) {
           topNav.classList.add('hidden');
         } else {
           topNav.classList.remove('hidden');
         }
+
+        // Scroll-to-top button
+        scrollTopBtn.classList.toggle('visible', scrollY > window.innerHeight);
 
         lastScrollY = scrollY;
         ticking = false;
@@ -60,24 +78,35 @@
 
   window.addEventListener('scroll', onScroll, { passive: true });
 
+  // --- Scroll-to-Top ---
+  scrollTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // --- Scroll Cue ---
+  if (scrollCue) {
+    scrollCue.addEventListener('click', () => {
+      const firstArticle = document.querySelector('article');
+      if (firstArticle) {
+        firstArticle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+
   // --- Archive Overlay ---
   archiveToggle.addEventListener('click', () => {
     archiveOverlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
   });
 
   function closeArchive() {
     archiveOverlay.classList.remove('open');
-    document.body.style.overflow = '';
+    body.style.overflow = '';
   }
 
   archiveClose.addEventListener('click', closeArchive);
   archiveOverlay.addEventListener('click', (e) => {
     if (e.target === archiveOverlay) closeArchive();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeArchive();
   });
 
   // --- Intersection Observer for Scroll Reveal ---
@@ -90,7 +119,20 @@
         }
       });
     },
-    { threshold: 0.05, rootMargin: '0px 0px -60px 0px' }
+    { threshold: 0.04, rootMargin: '0px 0px -40px 0px' }
+  );
+
+  // --- Track which article is currently in view ---
+  const activeObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const index = parseInt(entry.target.dataset.index, 10);
+          if (!isNaN(index)) currentArticleIndex = index;
+        }
+      });
+    },
+    { threshold: 0.2, rootMargin: '-80px 0px -40% 0px' }
   );
 
   // --- Format Date ---
@@ -103,31 +145,22 @@
     });
   }
 
-  // --- Content Processing ---
-  // Processes raw HTML content from dispatches.json to ensure
-  // lists and other elements render correctly.
+  function formatDateShort(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  }
 
+  // --- Content Processing ---
   function processContent(rawContent) {
-    // Create a temporary container to parse and clean the HTML
     const temp = document.createElement('div');
     temp.innerHTML = rawContent;
 
-    // Ensure all lists inside .body-content are properly structured.
-    // If the JSON content uses simple line-break-separated items with
-    // markers like "- item" or "1. item", convert them to proper HTML lists.
-    // This handles both pre-formed <ul>/<ol> tags AND plain-text list patterns.
-
-    const textNodes = [];
-    const walker = document.createTreeWalker(temp, NodeFilter.SHOW_TEXT, null);
-    while (walker.nextNode()) textNodes.push(walker.currentNode);
-
-    // Process paragraphs that contain line-based list patterns
     temp.querySelectorAll('p').forEach((p) => {
       const html = p.innerHTML.trim();
-
-      // Detect unordered list pattern: lines starting with "- " or "• "
       const ulPattern = /^(?:[•\-\*]\s+.+(?:<br\s*\/?>)?)+$/im;
-      // Detect ordered list pattern: lines starting with "1. ", "2. ", etc.
       const olPattern = /^(?:\d+[\.\)]\s+.+(?:<br\s*\/?>)?)+$/im;
 
       if (ulPattern.test(html)) {
@@ -135,7 +168,6 @@
           .split(/<br\s*\/?>|\n/)
           .map((line) => line.replace(/^[•\-\*]\s+/, '').trim())
           .filter((line) => line.length > 0);
-
         if (items.length > 0) {
           const ul = document.createElement('ul');
           items.forEach((item) => {
@@ -150,7 +182,6 @@
           .split(/<br\s*\/?>|\n/)
           .map((line) => line.replace(/^\d+[\.\)]\s+/, '').trim())
           .filter((line) => line.length > 0);
-
         if (items.length > 0) {
           const ol = document.createElement('ol');
           items.forEach((item) => {
@@ -166,6 +197,32 @@
     return temp.innerHTML;
   }
 
+  // --- Smooth Scroll to Article ---
+  function scrollToArticle(index, highlight) {
+    const article = document.getElementById('dispatch-' + index);
+    if (!article) return;
+
+    // Remove previous highlights
+    document.querySelectorAll('.nav-highlight').forEach((el) => {
+      el.classList.remove('nav-highlight');
+    });
+
+    // Smooth scroll with offset
+    const y = article.getBoundingClientRect().top + window.scrollY - 80;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+
+    // Add highlight indicator
+    if (highlight) {
+      // Small delay so the scroll starts first
+      setTimeout(() => {
+        article.classList.add('visible'); // Ensure it's visible
+        article.classList.add('nav-highlight');
+      }, 100);
+    }
+
+    currentArticleIndex = index;
+  }
+
   // --- Render Articles ---
   function renderArticles(data) {
     posts = data;
@@ -175,6 +232,7 @@
       .map((post, i) => {
         const num = String(posts.length - i).padStart(3, '0');
         const processedContent = processContent(post.content);
+        const readTime = estimateReadingTime(post.content);
         return `
           <article id="dispatch-${i}" data-index="${i}">
             <div class="dispatch-label">Dispatch No. ${num}</div>
@@ -184,7 +242,9 @@
               <div class="meta">
                 <span class="author-name">Andrew F. Butler</span>
                 <span class="divider">//</span>
-                ${formatDate(post.date)}
+                <span>${formatDate(post.date)}</span>
+                <span class="divider">//</span>
+                <span class="reading-time">${readTime} min read</span>
               </div>
             </header>
             <div class="body-content">
@@ -195,36 +255,142 @@
       })
       .join('');
 
+    // Observe articles
     document.querySelectorAll('article').forEach((el) => {
       revealObserver.observe(el);
+      activeObserver.observe(el);
     });
 
+    // Archive list
     archiveList.innerHTML = posts
-      .map(
-        (post, i) => `
-        <li style="animation-delay: ${i * 0.06}s">
-          <a href="#dispatch-${i}" onclick="document.querySelector('.archive-overlay').classList.remove('open'); document.body.style.overflow='';">
-            <span class="archive-title">${post.title}</span>
-            <span class="archive-date">${formatDate(post.date)}</span>
-          </a>
-        </li>
-      `
-      )
+      .map((post, i) => {
+        const readTime = estimateReadingTime(post.content);
+        return `
+          <li style="animation-delay: ${i * 0.05}s">
+            <a href="#dispatch-${i}" data-index="${i}">
+              <div>
+                <span class="archive-title">${post.title}</span>
+                <span class="archive-reading-time">${readTime} min read</span>
+              </div>
+              <span class="archive-date">${formatDateShort(post.date)}</span>
+            </a>
+          </li>
+        `;
+      })
       .join('');
 
+    // Archive count
+    if (archiveCount) {
+      archiveCount.textContent = `${posts.length} dispatch${posts.length !== 1 ? 'es' : ''}`;
+    }
+
+    // Archive link clicks
+    archiveList.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const idx = parseInt(link.dataset.index, 10);
+        closeArchive();
+        setTimeout(() => scrollToArticle(idx, true), 300);
+      });
+    });
+
+    // Bottom nav
     if (posts.length > 1) {
       articleNav.innerHTML = `
-        <a href="#dispatch-${posts.length - 1}">
-          Oldest
+        <a href="#dispatch-${posts.length - 1}" class="nav-link-oldest">
+          <span class="nav-direction">&larr; Oldest</span>
           <span class="nav-label">${posts[posts.length - 1].title}</span>
         </a>
-        <a href="#dispatch-0" class="next">
-          Latest
+        <a href="#dispatch-0" class="nav-link-latest next">
+          <span class="nav-direction">Latest &rarr;</span>
           <span class="nav-label">${posts[0].title}</span>
         </a>
       `;
+
+      articleNav.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const hash = link.getAttribute('href');
+          const idx = parseInt(hash.replace('#dispatch-', ''), 10);
+          scrollToArticle(idx, true);
+        });
+      });
     }
+
+    // Show keyboard hint briefly on desktop
+    showKeyboardHint();
   }
+
+  // --- Keyboard Hint ---
+  function showKeyboardHint() {
+    if (!keyboardHint || window.matchMedia('(hover: none)').matches) return;
+    keyboardHintTimer = setTimeout(() => {
+      keyboardHint.classList.add('visible');
+      setTimeout(() => {
+        keyboardHint.classList.remove('visible');
+      }, 4000);
+    }, 2500);
+  }
+
+  // --- Keyboard Navigation ---
+  document.addEventListener('keydown', (e) => {
+    // Close archive on Escape
+    if (e.key === 'Escape') {
+      if (archiveOverlay.classList.contains('open')) {
+        closeArchive();
+      }
+      return;
+    }
+
+    // Don't intercept if typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Don't navigate if archive is open
+    if (archiveOverlay.classList.contains('open')) return;
+
+    const articles = document.querySelectorAll('article');
+    if (articles.length === 0) return;
+
+    // J / Down Arrow — next article
+    if (e.key === 'j' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      // Dismiss keyboard hint on first use
+      if (keyboardHint) keyboardHint.classList.remove('visible');
+
+      const nextIndex = Math.min(currentArticleIndex + 1, articles.length - 1);
+      scrollToArticle(nextIndex, true);
+    }
+
+    // K / Up Arrow — previous article
+    if (e.key === 'k' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (keyboardHint) keyboardHint.classList.remove('visible');
+
+      const prevIndex = Math.max(currentArticleIndex - 1, 0);
+      scrollToArticle(prevIndex, true);
+    }
+
+    // I — toggle index
+    if (e.key === 'i') {
+      archiveToggle.click();
+    }
+
+    // T — scroll to top
+    if (e.key === 't') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      currentArticleIndex = -1;
+    }
+
+    // H — go to first (latest) article
+    if (e.key === 'h') {
+      scrollToArticle(0, true);
+    }
+
+    // L — go to last (oldest) article
+    if (e.key === 'l') {
+      scrollToArticle(articles.length - 1, true);
+    }
+  });
 
   // --- Load Content ---
   async function loadDispatches() {
@@ -237,43 +403,15 @@
       console.error('Error loading dispatches:', error);
       articlesContainer.innerHTML = `
         <article class="visible">
+          <div class="dispatch-label">System</div>
           <h1>Standby</h1>
-          <p>Dispatches are being loaded. If this persists, ensure data/dispatches.json is accessible.</p>
+          <div class="body-content">
+            <p>Dispatches are being loaded. If this persists, ensure <code>data/dispatches.json</code> is accessible.</p>
+          </div>
         </article>
       `;
     }
   }
-
-  // --- Keyboard Navigation ---
-  document.addEventListener('keydown', (e) => {
-    if (archiveOverlay.classList.contains('open')) return;
-
-    if (e.key === 'j' || e.key === 'ArrowDown') {
-      const articles = document.querySelectorAll('article');
-      for (let i = 0; i < articles.length; i++) {
-        const rect = articles[i].getBoundingClientRect();
-        if (rect.top > 100) {
-          articles[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
-          break;
-        }
-      }
-    }
-
-    if (e.key === 'k' || e.key === 'ArrowUp') {
-      const articles = document.querySelectorAll('article');
-      for (let i = articles.length - 1; i >= 0; i--) {
-        const rect = articles[i].getBoundingClientRect();
-        if (rect.top < -50) {
-          articles[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
-          break;
-        }
-      }
-    }
-
-    if (e.key === 'i') {
-      archiveToggle.click();
-    }
-  });
 
   // --- Init ---
   document.addEventListener('DOMContentLoaded', loadDispatches);

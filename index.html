@@ -12,7 +12,7 @@
     />
     <meta name="author" content="Andrew F. Butler" />
 
-    <!-- Open Graph (Facebook, LinkedIn, iMessage, etc.) -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Dispatches — Andrew F. Butler" />
     <meta
@@ -65,7 +65,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=JetBrains+Mono:wght@400;500;600&family=Bebas+Neue&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/css/style.css" />
@@ -76,36 +76,102 @@
 
     <!-- Top Nav -->
     <nav class="top-nav" id="top-nav">
-      <span class="nav-brand">Dispatches // AFB</span>
+      <span class="nav-brand"
+        >Dispatches <span class="brand-sep">//</span> AFB</span
+      >
       <div class="nav-controls">
-        <button class="nav-btn" id="archive-toggle">Index</button>
-        <button class="nav-btn" id="theme-toggle">
+        <button class="nav-btn" id="archive-toggle" aria-label="Open index">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="14" y2="18" />
+          </svg>
+          <span>Index</span>
+        </button>
+        <button class="nav-btn" id="theme-toggle" aria-label="Toggle theme">
           <span class="theme-icon"></span>
         </button>
       </div>
     </nav>
 
+    <!-- Keyboard Hint (desktop only) -->
+    <div class="keyboard-hint" id="keyboard-hint">
+      <span class="key-badge">J</span><span class="key-badge">K</span> navigate
+      <span class="key-sep">&middot;</span>
+      <span class="key-badge">I</span> index
+      <span class="key-sep">&middot;</span>
+      <span class="key-badge">T</span> top
+    </div>
+
     <!-- Archive Overlay -->
     <div class="archive-overlay" id="archive-overlay">
       <div class="archive-inner">
         <div class="archive-header">
-          <h2>Index of Dispatches</h2>
-          <button class="archive-close" id="archive-close">&times;</button>
+          <div>
+            <h2>Index of Dispatches</h2>
+            <p class="archive-count" id="archive-count"></p>
+          </div>
+          <button
+            class="archive-close"
+            id="archive-close"
+            aria-label="Close index"
+          >
+            &times;
+          </button>
         </div>
         <ul class="archive-list" id="archive-list"></ul>
       </div>
     </div>
 
+    <!-- Scroll-to-top -->
+    <button class="scroll-top" id="scroll-top" aria-label="Scroll to top">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="18 15 12 9 6 15" />
+      </svg>
+    </button>
+
     <!-- Main Content -->
     <div class="wrapper">
-      <header class="site-header">
+      <header class="site-header" id="site-header">
         <div class="header-classification">Independent Analysis</div>
         <p class="site-title">Dispatches</p>
+        <div class="title-rule"></div>
         <p class="site-author">Andrew F. Butler</p>
         <p class="site-desc">
           Independent analysis on regional security, industrial capacity, and
           the procedural requirements of modern statecraft.
         </p>
+        <div class="header-scroll-cue" id="scroll-cue">
+          <span>Begin Reading</span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
       </header>
 
       <main id="articles-container"></main>
