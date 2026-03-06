@@ -5,6 +5,15 @@
 (function () {
   'use strict';
 
+  // -----------------------------------------------
+  // CONFIG — Point this at your Express API
+  // -----------------------------------------------
+  const API_BASE = ['localhost', '127.0.0.1', ''].includes(
+    window.location.hostname
+  )
+    ? 'http://localhost:3001'
+    : 'https://api.andrewfbutler.com';
+
   // --- State ---
   let posts = [];
   let currentArticleIndex = -1;
@@ -213,9 +222,8 @@
 
     // Add highlight indicator
     if (highlight) {
-      // Small delay so the scroll starts first
       setTimeout(() => {
-        article.classList.add('visible'); // Ensure it's visible
+        article.classList.add('visible');
         article.classList.add('nav-highlight');
       }, 100);
     }
@@ -226,6 +234,7 @@
   // --- Render Articles ---
   function renderArticles(data) {
     posts = data;
+    // API already returns sorted newest-first, but ensure it just in case
     posts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     articlesContainer.innerHTML = posts
@@ -334,7 +343,6 @@
 
   // --- Keyboard Navigation ---
   document.addEventListener('keydown', (e) => {
-    // Close archive on Escape
     if (e.key === 'Escape') {
       if (archiveOverlay.classList.contains('open')) {
         closeArchive();
@@ -342,60 +350,39 @@
       return;
     }
 
-    // Don't intercept if typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-    // Don't navigate if archive is open
     if (archiveOverlay.classList.contains('open')) return;
 
     const articles = document.querySelectorAll('article');
     if (articles.length === 0) return;
 
-    // J / Down Arrow — next article
     if (e.key === 'j' || e.key === 'ArrowDown') {
       e.preventDefault();
-      // Dismiss keyboard hint on first use
       if (keyboardHint) keyboardHint.classList.remove('visible');
-
       const nextIndex = Math.min(currentArticleIndex + 1, articles.length - 1);
       scrollToArticle(nextIndex, true);
     }
 
-    // K / Up Arrow — previous article
     if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
       if (keyboardHint) keyboardHint.classList.remove('visible');
-
       const prevIndex = Math.max(currentArticleIndex - 1, 0);
       scrollToArticle(prevIndex, true);
     }
 
-    // I — toggle index
-    if (e.key === 'i') {
-      archiveToggle.click();
-    }
-
-    // T — scroll to top
+    if (e.key === 'i') archiveToggle.click();
     if (e.key === 't') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       currentArticleIndex = -1;
     }
-
-    // H — go to first (latest) article
-    if (e.key === 'h') {
-      scrollToArticle(0, true);
-    }
-
-    // L — go to last (oldest) article
-    if (e.key === 'l') {
-      scrollToArticle(articles.length - 1, true);
-    }
+    if (e.key === 'h') scrollToArticle(0, true);
+    if (e.key === 'l') scrollToArticle(articles.length - 1, true);
   });
 
-  // --- Load Content ---
+  // --- Load Content (now from API) ---
   async function loadDispatches() {
     try {
-      const response = await fetch('data/dispatches.json');
+      const response = await fetch(`${API_BASE}/api/dispatches`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       renderArticles(data);
@@ -406,7 +393,7 @@
           <div class="dispatch-label">System</div>
           <h1>Standby</h1>
           <div class="body-content">
-            <p>Dispatches are being loaded. If this persists, ensure <code>data/dispatches.json</code> is accessible.</p>
+            <p>Dispatches are being loaded. If this persists, ensure the API at <code>${API_BASE}/api/dispatches</code> is accessible.</p>
           </div>
         </article>
       `;
