@@ -12,7 +12,7 @@
     window.location.hostname
   )
     ? 'http://localhost:3001'
-    : 'https://api.andrewfbutler.com';
+    : 'https://dispatches-api.onrender.com';
 
   // --- State ---
   let posts = [];
