@@ -71,7 +71,7 @@
     <link rel="stylesheet" href="assets/css/style.css" />
   </head>
   <body data-theme="dark">
-    <!-- Reading Progress Bar -->
+    <!-- Global Reading Progress Bar -->
     <div class="progress-bar" id="progress-bar"></div>
 
     <!-- Top Nav -->
@@ -80,56 +80,12 @@
         >Dispatches <span class="brand-sep">//</span> AFB</span
       >
       <div class="nav-controls">
-        <button class="nav-btn" id="archive-toggle" aria-label="Open index">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="14" y2="18" />
-          </svg>
-          <span>Index</span>
-        </button>
         <button class="nav-btn" id="theme-toggle" aria-label="Toggle theme">
           <span class="theme-icon"></span>
+          <span id="theme-label">Light</span>
         </button>
       </div>
     </nav>
-
-    <!-- Keyboard Hint (desktop only) -->
-    <div class="keyboard-hint" id="keyboard-hint">
-      <span class="key-badge">J</span><span class="key-badge">K</span> navigate
-      <span class="key-sep">&middot;</span>
-      <span class="key-badge">I</span> index
-      <span class="key-sep">&middot;</span>
-      <span class="key-badge">T</span> top
-    </div>
-
-    <!-- Archive Overlay -->
-    <div class="archive-overlay" id="archive-overlay">
-      <div class="archive-inner">
-        <div class="archive-header">
-          <div>
-            <h2>Index of Dispatches</h2>
-            <p class="archive-count" id="archive-count"></p>
-          </div>
-          <button
-            class="archive-close"
-            id="archive-close"
-            aria-label="Close index"
-          >
-            &times;
-          </button>
-        </div>
-        <ul class="archive-list" id="archive-list"></ul>
-      </div>
-    </div>
 
     <!-- Scroll-to-top -->
     <button class="scroll-top" id="scroll-top" aria-label="Scroll to top">
@@ -150,8 +106,11 @@
     <!-- Main Content -->
     <div class="wrapper">
       <header class="site-header" id="site-header">
-        <div class="header-classification">Independent Analysis</div>
-        <p class="site-title">Dispatches</p>
+        <div class="header-classification">
+          <span class="accent-line"></span>
+          Independent Analysis
+        </div>
+        <h1 class="site-title">Dispatches</h1>
         <div class="title-rule"></div>
         <p class="site-author">Andrew F. Butler</p>
         <p class="site-desc">
@@ -159,23 +118,50 @@
           the procedural requirements of modern statecraft.
         </p>
         <div class="header-scroll-cue" id="scroll-cue">
-          <span>Begin Reading</span>
+          <span>&darr; Begin Reading</span>
+        </div>
+      </header>
+
+      <!-- Search & Filter Bar -->
+      <div class="filter-bar" id="filter-bar">
+        <div class="search-wrap">
           <svg
-            width="16"
-            height="16"
+            class="search-icon"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
           >
-            <polyline points="6 9 12 15 18 9" />
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
+          <input
+            type="text"
+            id="search-input"
+            class="search-input"
+            placeholder="Search dispatches..."
+            autocomplete="off"
+          />
         </div>
-      </header>
+        <div class="tag-bar">
+          <span class="tag-bar-label">Filter</span>
+          <div class="tag-pills" id="tag-pills"></div>
+          <button class="tag-clear hidden" id="tag-clear">Clear</button>
+        </div>
+        <div class="filter-count" id="filter-count"></div>
+      </div>
 
-      <main id="articles-container"></main>
-      <nav class="article-nav" id="article-nav"></nav>
+      <!-- Dispatch List -->
+      <main id="dispatch-list"></main>
+
+      <!-- Empty State -->
+      <div class="empty-state hidden" id="empty-state">
+        <p class="empty-text">No dispatches match your criteria.</p>
+        <button class="empty-reset" id="empty-reset">Reset Filters</button>
+      </div>
 
       <footer class="site-footer">
         <div class="footer-rule"></div>
@@ -183,10 +169,7 @@
           <p class="bio-name">Andrew F. Butler</p>
           <p class="bio-text">
             Researcher and analyst focused on the intersection of logistical
-            reality and strategic policy. With decades spent navigating
-            high-consequence operational environments, he provides independent
-            analysis on regional security, industrial capacity, and the
-            procedural requirements of modern statecraft.
+            reality and strategic policy.
           </p>
         </div>
         <p class="colophon">Est. 2026 &middot; Independent Publication</p>
