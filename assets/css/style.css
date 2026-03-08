@@ -324,7 +324,7 @@ body::after {
   font-size: clamp(1rem, 2.2vw, 1.2rem);
   line-height: 1.65;
   color: var(--dim);
-  max-width: 420px;
+  max-width: 100%;
   font-style: italic;
   font-weight: 400;
   opacity: 0;
@@ -853,7 +853,7 @@ body::after {
   font-size: clamp(0.92rem, 1.8vw, 1.05rem);
   line-height: 1.7;
   color: var(--dim);
-  max-width: 440px;
+  max-width: 100%;
   font-style: italic;
   font-weight: 400;
 }
