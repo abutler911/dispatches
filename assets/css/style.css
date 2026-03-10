@@ -1164,30 +1164,44 @@ body.cursor-text .cursor-ring {
 /* Blockquote */
 .body-content blockquote {
   position: relative;
-  margin: 2.4em 0;
-  padding: 1.6em 1.8em 1.6em 2em;
-  border-left: 3px solid var(--accent);
-  background: var(--accent-glow);
-  border-radius: 0 4px 4px 0;
-  max-width: 620px;
+  margin: 3em auto;
+  padding: 2em 0;
+  max-width: 560px;
+  border-left: none;
+  background: none;
+  border-radius: 0;
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  text-align: center;
 }
+
 .body-content blockquote p {
   font-family: var(--font-display);
-  font-size: clamp(1.1rem, 2.2vw, 1.28rem);
+  font-size: clamp(1.2rem, 2.8vw, 1.55rem);
   font-style: italic;
+  font-weight: 600;
   color: var(--headline);
   margin-bottom: 0;
-  line-height: 1.6;
-  text-align: left;
+  line-height: 1.5;
+  text-align: center;
+  max-width: none;
 }
+
 .body-content blockquote p::before {
   content: "\201C";
   color: var(--accent);
+  font-size: 1.4em;
+  line-height: 0;
+  vertical-align: -0.3em;
   margin-right: 0.1em;
 }
+
 .body-content blockquote p::after {
   content: "\201D";
   color: var(--accent);
+  font-size: 1.4em;
+  line-height: 0;
+  vertical-align: -0.3em;
   margin-left: 0.1em;
 }
 
