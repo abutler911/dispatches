@@ -1,6 +1,57 @@
 // ============================================
 // DISPATCHES — Engine
 // ============================================
+document.addEventListener(
+  "mousemove",
+  (e) => {
+    document.body.style.setProperty("--mouse-x", `${e.clientX}px`);
+    document.body.style.setProperty("--mouse-y", `${e.clientY}px`);
+  },
+  { passive: true },
+);
+document.addEventListener(
+  "mousemove",
+  (e) => {
+    document.getElementById("cursor-dot").style.left = e.clientX + "px";
+    document.getElementById("cursor-dot").style.top = e.clientY + "px";
+  },
+  { passive: true },
+);
+
+let ringX = 0,
+  ringY = 0,
+  cx = 0,
+  cy = 0;
+const ring = document.getElementById("cursor-ring");
+const label = document.getElementById("cursor-label");
+document.addEventListener(
+  "mousemove",
+  (e) => {
+    cx = e.clientX;
+    cy = e.clientY;
+  },
+  { passive: true },
+);
+(function lerp() {
+  ringX += (cx - ringX) * 0.12;
+  ringY += (cy - ringY) * 0.12;
+  ring.style.left = ringX + "px";
+  ring.style.top = ringY + "px";
+  label.style.left = ringX + "px";
+  label.style.top = ringY + "px";
+  requestAnimationFrame(lerp);
+})();
+
+document.addEventListener(
+  "mouseover",
+  (e) => {
+    const onHeader = e.target.closest(".dispatch-header");
+    const onInput = e.target.closest("input, textarea");
+    document.body.classList.toggle("cursor-hover", !!onHeader);
+    document.body.classList.toggle("cursor-text", !!onInput);
+  },
+  { passive: true },
+);
 
 (function () {
   "use strict";
@@ -419,7 +470,6 @@
 
         progressBar.style.width = progress + "%";
         topNav.classList.toggle("scrolled", scrollY > 60);
-        filterBar.classList.toggle("elevated", scrollY > 100);
 
         if (scrollY > lastScrollY && scrollY > 200) {
           topNav.classList.add("nav-hidden");
