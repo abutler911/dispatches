@@ -1,54 +1,13 @@
 // ============================================
 // DISPATCHES — Engine
 // ============================================
+
+// Spotlight: update CSS vars on mouse move
 document.addEventListener(
   "mousemove",
   (e) => {
     document.body.style.setProperty("--mouse-x", `${e.clientX}px`);
     document.body.style.setProperty("--mouse-y", `${e.clientY}px`);
-  },
-  { passive: true },
-);
-document.addEventListener(
-  "mousemove",
-  (e) => {
-    document.getElementById("cursor-dot").style.left = e.clientX + "px";
-    document.getElementById("cursor-dot").style.top = e.clientY + "px";
-  },
-  { passive: true },
-);
-
-let ringX = 0,
-  ringY = 0,
-  cx = 0,
-  cy = 0;
-const ring = document.getElementById("cursor-ring");
-const label = document.getElementById("cursor-label");
-document.addEventListener(
-  "mousemove",
-  (e) => {
-    cx = e.clientX;
-    cy = e.clientY;
-  },
-  { passive: true },
-);
-(function lerp() {
-  ringX += (cx - ringX) * 0.12;
-  ringY += (cy - ringY) * 0.12;
-  ring.style.left = ringX + "px";
-  ring.style.top = ringY + "px";
-  label.style.left = ringX + "px";
-  label.style.top = ringY + "px";
-  requestAnimationFrame(lerp);
-})();
-
-document.addEventListener(
-  "mouseover",
-  (e) => {
-    const onHeader = e.target.closest(".dispatch-header");
-    const onInput = e.target.closest("input, textarea");
-    document.body.classList.toggle("cursor-hover", !!onHeader);
-    document.body.classList.toggle("cursor-text", !!onInput);
   },
   { passive: true },
 );
@@ -347,7 +306,6 @@ document.addEventListener(
       if (msgIndex < TERMINAL_MESSAGES.length - 1) {
         completedLines.push(TERMINAL_MESSAGES[msgIndex]);
         msgIndex++;
-        // Only update if loading terminal is still visible
         const terminal = dispatchList.querySelector(".loading-terminal");
         if (terminal) {
           dispatchList.innerHTML = buildTerminalHTML();
@@ -402,7 +360,6 @@ document.addEventListener(
         showToast("Link copied to clipboard");
       });
     } else {
-      // Fallback
       const el = document.createElement("textarea");
       el.value = url;
       el.style.position = "fixed";
@@ -810,7 +767,6 @@ document.addEventListener(
 
     renderTagPills();
 
-    // Check for deep link hash
     const hashId = getHashId();
     if (hashId) {
       const match = posts.find((p) => p._id === hashId);
@@ -819,7 +775,6 @@ document.addEventListener(
 
     renderList();
 
-    // Scroll to deep-linked dispatch after render
     if (expandedId) {
       setTimeout(function () {
         const row = document.querySelector(
@@ -865,7 +820,6 @@ document.addEventListener(
 
   // --- Keyboard shortcuts ---
   document.addEventListener("keydown", function (e) {
-    // Don't intercept when typing in an input
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
       if (e.key === "Escape") {
         searchInput.blur();
