@@ -483,9 +483,9 @@ body::after {
    FILTER BAR
    ============================================ */
 .filter-bar {
-  position: sticky;
+  position: relative;
   top: 54px;
-  z-index: 100;
+  z-index: 1;
   background: var(--bg);
   padding: 18px 0;
   border-bottom: 1px solid var(--border);
