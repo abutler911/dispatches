@@ -24,10 +24,10 @@
   --code-text: #ddb95c;
   --shadow-soft: 0 4px 40px rgba(0, 0, 0, 0.3);
 
-  --font-display: 'Playfair Display', 'Georgia', serif;
-  --font-headline: 'Bebas Neue', sans-serif;
-  --font-serif: 'Source Serif 4', 'Georgia', serif;
-  --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+  --font-display: "Playfair Display", "Georgia", serif;
+  --font-headline: "Bebas Neue", sans-serif;
+  --font-serif: "Source Serif 4", "Georgia", serif;
+  --font-mono: "JetBrains Mono", "Menlo", monospace;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -37,7 +37,7 @@
   --wide-width: 780px;
 }
 
-[data-theme='light'] {
+[data-theme="light"] {
   --bg: #f6f3ec;
   --bg-elevated: #eee9de;
   --bg-surface: #e8e2d5;
@@ -86,7 +86,7 @@ body {
 
 /* Noise texture */
 body::after {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
@@ -94,7 +94,7 @@ body::after {
   z-index: 9999;
   opacity: 0.3;
 }
-[data-theme='light'] body::after {
+[data-theme="light"] body::after {
   opacity: 0.18;
 }
 
@@ -201,7 +201,7 @@ body::after {
   border: 1.5px solid var(--dim);
   transition: all 0.3s var(--ease-spring);
 }
-[data-theme='light'] .theme-icon {
+[data-theme="light"] .theme-icon {
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -757,7 +757,7 @@ body::after {
   margin-bottom: 0.75em;
 }
 .body-content ul > li::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0.7em;
@@ -910,4 +910,44 @@ body::after {
     padding-bottom: 2em;
     min-height: auto;
   }
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15vh 0;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.loading-sub {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: -10px;
 }
