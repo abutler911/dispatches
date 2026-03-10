@@ -522,7 +522,7 @@ body.cursor-text .cursor-ring {
   letter-spacing: 0.02em;
   color: var(--headline);
   margin: 0;
-  overflow: hidden; /* The mask — text below this edge is invisible */
+  overflow-y: clip;
   display: block;
 }
 
