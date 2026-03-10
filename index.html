@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
     <title>Dispatches | Andrew F. Butler</title>
 
     <!-- SEO & Social -->
@@ -80,6 +81,13 @@
         >Dispatches <span class="brand-sep">//</span> AFB</span
       >
       <div class="nav-controls">
+        <button
+          class="nav-btn nav-btn-icon"
+          id="shortcuts-btn"
+          aria-label="Keyboard shortcuts"
+        >
+          <span class="shortcuts-key">?</span>
+        </button>
         <button class="nav-btn" id="theme-toggle" aria-label="Toggle theme">
           <span class="theme-icon"></span>
           <span id="theme-label">Light</span>
@@ -142,23 +150,42 @@
             type="text"
             id="search-input"
             class="search-input"
-            placeholder="Search dispatches..."
+            placeholder="Search dispatches…  [press / to focus]"
             autocomplete="off"
           />
+          <button
+            class="search-clear hidden"
+            id="search-clear"
+            aria-label="Clear search"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
         <div class="tag-bar">
           <span class="tag-bar-label">Filter</span>
           <div class="tag-pills" id="tag-pills"></div>
-          <button class="tag-clear hidden" id="tag-clear">Clear</button>
+          <button class="tag-clear hidden" id="tag-clear">✕ Clear</button>
         </div>
         <div class="filter-count" id="filter-count"></div>
       </div>
 
       <!-- Dispatch List -->
-      <main id="dispatch-list"></main>
+      <main id="dispatch-list" role="main"></main>
 
       <!-- Empty State -->
       <div class="empty-state hidden" id="empty-state">
+        <div class="empty-icon">// 0 //</div>
         <p class="empty-text">No dispatches match your criteria.</p>
         <button class="empty-reset" id="empty-reset">Reset Filters</button>
       </div>
@@ -177,6 +204,51 @@
         </div>
         <p class="colophon">Est. 2026 &middot; Independent Publication</p>
       </footer>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div
+      class="shortcuts-overlay hidden"
+      id="shortcuts-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+    >
+      <div class="shortcuts-box">
+        <div class="shortcuts-header">
+          <span class="shortcuts-title">Keyboard Shortcuts</span>
+          <button
+            class="shortcuts-close"
+            id="shortcuts-close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="shortcuts-grid">
+          <div class="shortcut-row">
+            <kbd>/</kbd>
+            <span>Focus search</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>T</kbd>
+            <span>Scroll to top</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>Esc</kbd>
+            <span>Clear search / close</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>?</kbd>
+            <span>Toggle this panel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copy toast -->
+    <div class="copy-toast hidden" id="copy-toast">
+      Link copied to clipboard
     </div>
 
     <script src="assets/js/script.js"></script>

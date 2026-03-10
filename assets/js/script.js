@@ -1,5 +1,5 @@
 // ============================================
-// DISPATCHES — Redesigned Engine
+// DISPATCHES — Engine
 // ============================================
 
 (function () {
@@ -11,6 +11,11 @@
   )
     ? "http://localhost:3001"
     : "https://dispatches-api.onrender.com";
+
+  // --- Reduced motion ---
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
 
   // --- Tag color map (dark / light) ---
   const TAG_COLORS = {
@@ -150,8 +155,7 @@
 
   function getTagColor(tag) {
     const theme = document.body.getAttribute("data-theme") || "dark";
-    const entry = TAG_COLORS[tag] || TAG_COLORS.Security;
-    return entry[theme];
+    return (TAG_COLORS[tag] || TAG_COLORS.Security)[theme];
   }
 
   // --- State ---
@@ -161,6 +165,8 @@
   let searchQuery = "";
   let lastScrollY = 0;
   let ticking = false;
+  let toastTimeout = null;
+  let terminalInterval = null;
 
   // --- DOM ---
   const body = document.body;
@@ -171,12 +177,18 @@
   const scrollTopBtn = document.getElementById("scroll-top");
   const scrollCue = document.getElementById("scroll-cue");
   const searchInput = document.getElementById("search-input");
+  const searchClear = document.getElementById("search-clear");
   const tagPillsContainer = document.getElementById("tag-pills");
   const tagClear = document.getElementById("tag-clear");
   const filterCount = document.getElementById("filter-count");
   const dispatchList = document.getElementById("dispatch-list");
   const emptyState = document.getElementById("empty-state");
   const emptyReset = document.getElementById("empty-reset");
+  const shortcutsBtn = document.getElementById("shortcuts-btn");
+  const shortcutsOverlay = document.getElementById("shortcuts-overlay");
+  const shortcutsClose = document.getElementById("shortcuts-close");
+  const filterBar = document.getElementById("filter-bar");
+  const copyToast = document.getElementById("copy-toast");
 
   // --- Theme ---
   const savedTheme = localStorage.getItem("dispatches-theme");
@@ -204,7 +216,7 @@
   }
 
   function getExcerpt(html, len) {
-    len = len || 180;
+    len = len || 200;
     const text = html.replace(/<[^>]*>/g, "");
     return text.length > len
       ? text.slice(0, len).replace(/\s+\S*$/, "") + "\u2026"
@@ -229,7 +241,130 @@
     });
   }
 
-  // --- Content Processing (same as original) ---
+  // --- Terminal loading messages ---
+  const TERMINAL_MESSAGES = [
+    "ESTABLISHING SECURE CHANNEL",
+    "AUTHENTICATING CREDENTIALS",
+    "CONTACTING FIELD ASSETS",
+    "DECRYPTING FIELD REPORTS",
+    "AWAITING TRANSMISSION",
+  ];
+
+  function startTerminalLoader() {
+    let msgIndex = 0;
+    const completedLines = [];
+
+    function buildTerminalHTML() {
+      const prevHTML = completedLines
+        .map(
+          (msg) =>
+            '<div class="terminal-prev-line">' +
+            '<span class="terminal-check">✓</span>' +
+            "<span>" +
+            msg +
+            "</span>" +
+            "</div>",
+        )
+        .join("");
+
+      const currentMsg =
+        TERMINAL_MESSAGES[msgIndex] ||
+        TERMINAL_MESSAGES[TERMINAL_MESSAGES.length - 1];
+
+      return (
+        '<div class="loading-terminal">' +
+        '<div class="terminal-messages">' +
+        prevHTML +
+        "</div>" +
+        '<div class="terminal-line">' +
+        '<span class="terminal-prompt">&gt;</span>' +
+        '<span class="terminal-text">' +
+        currentMsg +
+        "</span>" +
+        '<span class="terminal-cursor">_</span>' +
+        "</div>" +
+        '<div class="terminal-sub">First contact may take 30–60 seconds on cold start.</div>' +
+        "</div>"
+      );
+    }
+
+    dispatchList.innerHTML = buildTerminalHTML();
+
+    if (prefersReducedMotion) return;
+
+    terminalInterval = setInterval(function () {
+      if (msgIndex < TERMINAL_MESSAGES.length - 1) {
+        completedLines.push(TERMINAL_MESSAGES[msgIndex]);
+        msgIndex++;
+        // Only update if loading terminal is still visible
+        const terminal = dispatchList.querySelector(".loading-terminal");
+        if (terminal) {
+          dispatchList.innerHTML = buildTerminalHTML();
+        } else {
+          clearInterval(terminalInterval);
+        }
+      }
+    }, 1800);
+  }
+
+  function stopTerminalLoader() {
+    if (terminalInterval) {
+      clearInterval(terminalInterval);
+      terminalInterval = null;
+    }
+  }
+
+  // --- Toast notification ---
+  function showToast(message) {
+    copyToast.textContent = message;
+    copyToast.classList.remove("hidden");
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(function () {
+      copyToast.classList.add("hidden");
+    }, 2400);
+  }
+
+  // --- Deep link: URL hash ---
+  function getHashId() {
+    const hash = window.location.hash;
+    return hash ? hash.replace("#dispatch-", "") : null;
+  }
+
+  function setHashId(id) {
+    if (id) {
+      history.replaceState(null, "", "#dispatch-" + id);
+    } else {
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+  }
+
+  // --- Copy share link ---
+  function copyShareLink(postId) {
+    const url =
+      window.location.origin + window.location.pathname + "#dispatch-" + postId;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        showToast("Link copied to clipboard");
+      });
+    } else {
+      // Fallback
+      const el = document.createElement("textarea");
+      el.value = url;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      showToast("Link copied to clipboard");
+    }
+  }
+
+  // --- Content processing ---
   function processContent(rawContent) {
     const temp = document.createElement("div");
     temp.innerHTML = rawContent;
@@ -242,12 +377,8 @@
       if (ulPattern.test(html)) {
         const items = html
           .split(/<br\s*\/?>|\n/)
-          .map(function (line) {
-            return line.replace(/^[•\-\*]\s+/, "").trim();
-          })
-          .filter(function (line) {
-            return line.length > 0;
-          });
+          .map((l) => l.replace(/^[•\-\*]\s+/, "").trim())
+          .filter((l) => l.length > 0);
         if (items.length > 0) {
           const ul = document.createElement("ul");
           items.forEach(function (item) {
@@ -260,12 +391,8 @@
       } else if (olPattern.test(html)) {
         const items = html
           .split(/<br\s*\/?>|\n/)
-          .map(function (line) {
-            return line.replace(/^\d+[\.\)]\s+/, "").trim();
-          })
-          .filter(function (line) {
-            return line.length > 0;
-          });
+          .map((l) => l.replace(/^\d+[\.\)]\s+/, "").trim())
+          .filter((l) => l.length > 0);
         if (items.length > 0) {
           const ol = document.createElement("ol");
           items.forEach(function (item) {
@@ -285,13 +412,14 @@
   function onScroll() {
     if (!ticking) {
       requestAnimationFrame(function () {
-        var scrollY = window.scrollY;
-        var docHeight =
+        const scrollY = window.scrollY;
+        const docHeight =
           document.documentElement.scrollHeight - window.innerHeight;
-        var progress = docHeight > 0 ? (scrollY / docHeight) * 100 : 0;
+        const progress = docHeight > 0 ? (scrollY / docHeight) * 100 : 0;
 
         progressBar.style.width = progress + "%";
         topNav.classList.toggle("scrolled", scrollY > 60);
+        filterBar.classList.toggle("elevated", scrollY > 100);
 
         if (scrollY > lastScrollY && scrollY > 200) {
           topNav.classList.add("nav-hidden");
@@ -300,8 +428,6 @@
         }
 
         scrollTopBtn.classList.toggle("visible", scrollY > window.innerHeight);
-
-        // Update per-article reading progress for expanded article
         updateArticleProgress();
 
         lastScrollY = scrollY;
@@ -315,17 +441,17 @@
   // --- Per-article reading progress ---
   function updateArticleProgress() {
     if (expandedId === null) return;
-    var row = document.querySelector(".dispatch-row.expanded");
+    const row = document.querySelector(".dispatch-row.expanded");
     if (!row) return;
-    var bodyEl = row.querySelector(".dispatch-body");
+    const bodyEl = row.querySelector(".dispatch-body");
     if (!bodyEl) return;
-    var fill = row.querySelector(".row-progress-fill");
+    const fill = row.querySelector(".row-progress-fill");
     if (!fill) return;
 
-    var rect = bodyEl.getBoundingClientRect();
-    var total = bodyEl.scrollHeight;
-    var scrolled = -rect.top + 200;
-    var pct = Math.min(
+    const rect = bodyEl.getBoundingClientRect();
+    const total = bodyEl.scrollHeight;
+    const scrolled = -rect.top + 200;
+    const pct = Math.min(
       100,
       Math.max(0, (scrolled / (total - window.innerHeight + 200)) * 100),
     );
@@ -340,18 +466,27 @@
   // --- Scroll cue ---
   if (scrollCue) {
     scrollCue.addEventListener("click", function () {
-      var filterBar = document.getElementById("filter-bar");
-      if (filterBar) {
+      if (filterBar)
         filterBar.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
     });
   }
 
   // --- Search ---
   searchInput.addEventListener("input", function (e) {
     searchQuery = e.target.value;
+    searchClear.classList.toggle("hidden", !searchQuery);
     renderList();
   });
+
+  if (searchClear) {
+    searchClear.addEventListener("click", function () {
+      searchQuery = "";
+      searchInput.value = "";
+      searchClear.classList.add("hidden");
+      renderList();
+      searchInput.focus();
+    });
+  }
 
   // --- Tag clear ---
   tagClear.addEventListener("click", function () {
@@ -365,74 +500,73 @@
     searchQuery = "";
     activeTags = [];
     searchInput.value = "";
+    searchClear.classList.add("hidden");
     renderTagPills();
     renderList();
   });
 
+  // --- Keyboard shortcuts modal ---
+  function openShortcuts() {
+    shortcutsOverlay.classList.remove("hidden");
+    shortcutsClose.focus();
+  }
+  function closeShortcuts() {
+    shortcutsOverlay.classList.add("hidden");
+  }
+
+  if (shortcutsBtn) shortcutsBtn.addEventListener("click", openShortcuts);
+  if (shortcutsClose) shortcutsClose.addEventListener("click", closeShortcuts);
+  if (shortcutsOverlay) {
+    shortcutsOverlay.addEventListener("click", function (e) {
+      if (e.target === shortcutsOverlay) closeShortcuts();
+    });
+  }
+
   // --- Filter logic ---
   function getFilteredPosts() {
     return posts.filter(function (p) {
-      var q = searchQuery.toLowerCase();
-      var matchesSearch =
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
         !q ||
-        p.title.toLowerCase().indexOf(q) !== -1 ||
-        p.subtitle.toLowerCase().indexOf(q) !== -1 ||
-        p.tags.some(function (t) {
-          return t.toLowerCase().indexOf(q) !== -1;
-        });
-
-      var matchesTags =
-        activeTags.length === 0 ||
-        activeTags.some(function (t) {
-          return p.tags.indexOf(t) !== -1;
-        });
-
+        p.title.toLowerCase().includes(q) ||
+        p.subtitle.toLowerCase().includes(q) ||
+        p.tags.some((t) => t.toLowerCase().includes(q));
+      const matchesTags =
+        activeTags.length === 0 || activeTags.some((t) => p.tags.includes(t));
       return matchesSearch && matchesTags;
     });
   }
 
-  // --- Collect all tags ---
   function getAllTags() {
-    var s = new Set();
-    posts.forEach(function (p) {
-      p.tags.forEach(function (t) {
-        s.add(t);
-      });
-    });
+    const s = new Set();
+    posts.forEach((p) => p.tags.forEach((t) => s.add(t)));
     return Array.from(s).sort();
   }
 
-  // --- Render tag filter pills ---
+  // --- Tag filter pills ---
   function renderTagPills() {
-    var allTags = getAllTags();
     tagPillsContainer.innerHTML = "";
-
-    allTags.forEach(function (tag) {
-      var btn = document.createElement("button");
-      btn.className =
-        "tag-pill" + (activeTags.indexOf(tag) !== -1 ? " active" : "");
+    getAllTags().forEach(function (tag) {
+      const btn = document.createElement("button");
+      btn.className = "tag-pill" + (activeTags.includes(tag) ? " active" : "");
       btn.textContent = tag;
       btn.addEventListener("click", function () {
-        var idx = activeTags.indexOf(tag);
-        if (idx !== -1) {
-          activeTags.splice(idx, 1);
-        } else {
-          activeTags.push(tag);
-        }
+        const idx = activeTags.indexOf(tag);
+        if (idx !== -1) activeTags.splice(idx, 1);
+        else activeTags.push(tag);
         renderTagPills();
         renderList();
       });
       tagPillsContainer.appendChild(btn);
     });
-
     tagClear.classList.toggle("hidden", activeTags.length === 0);
   }
 
-  // --- Refresh tag badge colors (after theme change) ---
+  // --- Refresh tag badge colors after theme change ---
   function refreshTagColors() {
     document.querySelectorAll(".tag-badge").forEach(function (el) {
-      var tag = el.getAttribute("data-tag");
-      var c = getTagColor(tag);
+      const tag = el.getAttribute("data-tag");
+      const c = getTagColor(tag);
       el.style.background = c.bg;
       el.style.color = c.text;
       el.style.borderColor = c.border;
@@ -441,22 +575,26 @@
 
   // --- Build a single dispatch row ---
   function buildRow(post, index, total) {
-    var num = String(total - index).padStart(3, "0");
-    var rt = estimateReadingTime(post.content);
-    var excerpt = getExcerpt(post.content);
-    var processed = processContent(post.content);
-    var isExpanded = expandedId === post.id;
+    const num = String(total - index).padStart(3, "0");
+    const rt = estimateReadingTime(post.content);
+    const excerpt = getExcerpt(post.content);
+    const processed = processContent(post.content);
+    const isExpanded = expandedId === post._id;
 
-    var row = document.createElement("div");
+    const row = document.createElement("div");
     row.className = "dispatch-row" + (isExpanded ? " expanded" : "");
-    row.setAttribute("data-id", post.id);
-    row.style.animation =
-      "fadeSlideIn 0.6s cubic-bezier(0.16,1,0.3,1) " + index * 0.07 + "s both";
+    row.setAttribute("data-id", post._id);
 
-    // Build tag badges HTML
-    var tagsHTML = post.tags
+    if (!prefersReducedMotion) {
+      row.style.animation =
+        "fadeSlideIn 0.55s cubic-bezier(0.16,1,0.3,1) " +
+        index * 0.06 +
+        "s both";
+    }
+
+    const tagsHTML = post.tags
       .map(function (tag) {
-        var c = getTagColor(tag);
+        const c = getTagColor(tag);
         return (
           '<span class="tag-badge" data-tag="' +
           tag +
@@ -487,7 +625,7 @@
       '<span class="meta-sep">//</span>' +
       '<span class="meta-time">' +
       rt +
-      " min</span>" +
+      " min read</span>" +
       '<div class="meta-tags">' +
       tagsHTML +
       "</div>" +
@@ -520,6 +658,12 @@
       "<span>" +
       rt +
       " min read</span>" +
+      '<button class="share-btn" data-post-id="' +
+      post._id +
+      '" aria-label="Copy link to this dispatch">' +
+      '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
+      "Share" +
+      "</button>" +
       "</div>" +
       '<div class="body-content">' +
       processed +
@@ -527,11 +671,18 @@
       "</div>" +
       "</div>";
 
-    // Click to expand/collapse
-    var header = row.querySelector(".dispatch-header");
+    const header = row.querySelector(".dispatch-header");
     header.addEventListener("click", function () {
-      toggleExpand(post.id, row);
+      toggleExpand(post._id, row);
     });
+
+    const shareBtn = row.querySelector(".share-btn");
+    if (shareBtn) {
+      shareBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        copyShareLink(post._id);
+      });
+    }
 
     return row;
   }
@@ -539,101 +690,124 @@
   // --- Toggle expand ---
   function toggleExpand(id, clickedRow) {
     if (expandedId === id) {
-      // Collapse
       expandedId = null;
       clickedRow.classList.remove("expanded");
       clickedRow.querySelector(".dispatch-toggle-hint span").textContent =
         "Read Dispatch";
+      setHashId(null);
     } else {
-      // Collapse previously expanded
-      var prev = document.querySelector(".dispatch-row.expanded");
+      const prev = document.querySelector(".dispatch-row.expanded");
       if (prev) {
         prev.classList.remove("expanded");
         prev.querySelector(".dispatch-toggle-hint span").textContent =
           "Read Dispatch";
-        var prevFill = prev.querySelector(".row-progress-fill");
+        const prevFill = prev.querySelector(".row-progress-fill");
         if (prevFill) prevFill.style.height = "0%";
       }
-      // Expand new
+
       expandedId = id;
       clickedRow.classList.add("expanded");
       clickedRow.querySelector(".dispatch-toggle-hint span").textContent =
         "Collapse";
+      setHashId(id);
 
-      // Scroll to it with offset
       setTimeout(function () {
-        var y = clickedRow.getBoundingClientRect().top + window.scrollY - 120;
-        window.scrollTo({ top: y, behavior: "smooth" });
+        const y = clickedRow.getBoundingClientRect().top + window.scrollY - 110;
+        window.scrollTo({
+          top: y,
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+        });
       }, 50);
     }
   }
 
-  // --- Render the dispatch list ---
+  // --- Render list ---
   function renderList() {
-    var filtered = getFilteredPosts();
+    const filtered = getFilteredPosts();
+    const total = posts.length;
+    const isFiltered = searchQuery || activeTags.length > 0;
 
-    // Update count
-    var suffix = filtered.length !== 1 ? "es" : "";
-    var extra = searchQuery || activeTags.length > 0 ? " found" : "";
-    filterCount.textContent = filtered.length + " dispatch" + suffix + extra;
+    if (isFiltered) {
+      filterCount.textContent =
+        filtered.length +
+        " of " +
+        total +
+        " dispatch" +
+        (total !== 1 ? "es" : "");
+    } else {
+      filterCount.textContent = total + " dispatch" + (total !== 1 ? "es" : "");
+    }
 
-    // Show/hide empty state
     if (filtered.length === 0) {
       dispatchList.innerHTML = "";
       emptyState.classList.remove("hidden");
       return;
     }
     emptyState.classList.add("hidden");
-
-    // Build rows
     dispatchList.innerHTML = "";
     filtered.forEach(function (post, i) {
-      var row = buildRow(post, i, filtered.length);
-      dispatchList.appendChild(row);
+      dispatchList.appendChild(buildRow(post, i, filtered.length));
     });
   }
 
-  // --- Initial render after data loads ---
+  // --- Render after load ---
   function renderArticles(data) {
     posts = data;
-    posts.sort(function (a, b) {
-      return new Date(b.date) - new Date(a.date);
-    });
-
-    // Ensure every post has tags (default to empty array)
-    posts.forEach(function (p) {
+    posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    posts.forEach((p) => {
       if (!p.tags) p.tags = [];
     });
 
     renderTagPills();
+
+    // Check for deep link hash
+    const hashId = getHashId();
+    if (hashId) {
+      const match = posts.find((p) => p._id === hashId);
+      if (match) expandedId = hashId;
+    }
+
     renderList();
+
+    // Scroll to deep-linked dispatch after render
+    if (expandedId) {
+      setTimeout(function () {
+        const row = document.querySelector(
+          '.dispatch-row[data-id="' + expandedId + '"]',
+        );
+        if (row) {
+          const y = row.getBoundingClientRect().top + window.scrollY - 110;
+          window.scrollTo({
+            top: y,
+            behavior: prefersReducedMotion ? "auto" : "smooth",
+          });
+        }
+      }, 300);
+    }
   }
 
   // --- Load from API ---
   async function loadDispatches() {
-    dispatchList.innerHTML = dispatchList.innerHTML =
-      '<div class="loading-state">' +
-      '<div class="loading-spinner"></div>' +
-      '<p class="loading-text">Establishing Secure Channel…</p>' +
-      '<p class="loading-sub">Waking the server from deep cover. Stand by.</p>' +
-      "</div>";
+    startTerminalLoader();
 
     try {
-      var response = await fetch(API_BASE + "/api/dispatches");
+      const response = await fetch(API_BASE + "/api/dispatches");
       if (!response.ok) throw new Error("HTTP " + response.status);
-      var data = await response.json();
+      const data = await response.json();
+      stopTerminalLoader();
       renderArticles(data);
     } catch (error) {
+      stopTerminalLoader();
       console.error("Error loading dispatches:", error);
       dispatchList.innerHTML =
         '<div class="dispatch-row" style="animation: fadeSlideIn 0.5s ease both">' +
         '<div class="dispatch-header" style="cursor:default">' +
-        '<div class="dispatch-meta-line"><span class="meta-num">System</span></div>' +
-        '<h2 class="dispatch-title">Standby</h2>' +
-        '<p class="dispatch-subtitle">Dispatches are being loaded.</p>' +
-        '<p class="dispatch-excerpt">If this persists, ensure the API at ' +
+        '<div class="dispatch-meta-line"><span class="meta-num">Transmission Error</span></div>' +
+        '<h2 class="dispatch-title">Signal Lost</h2>' +
+        '<p class="dispatch-subtitle">Could not reach the field.</p>' +
+        '<p class="dispatch-excerpt">Verify the API at ' +
         API_BASE +
-        "/api/dispatches is accessible.</p>" +
+        "/api/dispatches is operational, then reload.</p>" +
         "</div>" +
         "</div>";
     }
@@ -641,14 +815,38 @@
 
   // --- Keyboard shortcuts ---
   document.addEventListener("keydown", function (e) {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    // Don't intercept when typing in an input
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+      if (e.key === "Escape") {
+        searchInput.blur();
+        if (searchQuery) {
+          searchQuery = "";
+          searchInput.value = "";
+          searchClear.classList.add("hidden");
+          renderList();
+        }
+      }
+      return;
+    }
 
-    if (e.key === "t") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (e.key === "t" || e.key === "T") {
+      window.scrollTo({
+        top: 0,
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
     }
     if (e.key === "/") {
       e.preventDefault();
       searchInput.focus();
+      searchInput.select();
+    }
+    if (e.key === "?") {
+      e.preventDefault();
+      if (shortcutsOverlay.classList.contains("hidden")) openShortcuts();
+      else closeShortcuts();
+    }
+    if (e.key === "Escape") {
+      if (!shortcutsOverlay.classList.contains("hidden")) closeShortcuts();
     }
   });
 
